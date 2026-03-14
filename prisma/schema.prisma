@@ -1,0 +1,51 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model User {
+  id            String         @id @default(uuid())
+  email         String         @unique
+  username      String         @unique
+  name          String?
+  level         String         @default("Noob")
+  progress      Int            @default(12)
+  avatarColor   String         @default("#5865F2")
+  bio           String?
+  rating        Float          @default(5.0)
+  totalSwaps    Int            @default(0)
+  hoursExchanged Int           @default(0)
+  skills        Skill[]
+  sentSwaps     SwapRequest[]  @relation("SentSwaps")
+  receivedSwaps SwapRequest[]  @relation("ReceivedSwaps")
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+}
+
+model Skill {
+  id        String   @id @default(uuid())
+  name      String
+  type      String   // "have" or "want"
+  category  String   @default("other") // webdev, design, music, etc.
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+}
+
+model SwapRequest {
+  id          String   @id @default(uuid())
+  senderId    String
+  receiverId  String
+  sender      User     @relation("SentSwaps", fields: [senderId], references: [id])
+  receiver    User     @relation("ReceivedSwaps", fields: [receiverId], references: [id])
+  status      String   @default("pending") // pending, accepted, declined
+  skillOffered String
+  skillWanted  String
+  createdAt   DateTime @default(now())
+}
+
