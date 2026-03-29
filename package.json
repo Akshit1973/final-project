@@ -7,7 +7,9 @@
     "build": "vite build",
     "dev": "vite",
     "server": "tsx src/server/index.ts",
-    "dev:full": "npm run server & npm run dev"
+    "dev:full": "npm run server & npm run dev",
+    "start": "tsx src/server/index.ts",
+    "postinstall": "prisma generate"
   },
   "dependencies": {
     "@emotion/react": "11.14.0",

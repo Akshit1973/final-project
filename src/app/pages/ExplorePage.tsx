@@ -60,18 +60,20 @@ const defaultFilters: FilterState = {
 
 function FilterPanel({
   filters,
-  onChange,
+  onApply,
   onClose,
 }: {
   filters: FilterState;
-  onChange: (f: FilterState) => void;
+  onApply: (f: FilterState) => void;
   onClose: () => void;
 }) {
+  const [localFilters, setLocalFilters] = useState<FilterState>(filters);
+
   const toggleLevel = (lvl: string) => {
-    const next = filters.levels.includes(lvl)
-      ? filters.levels.filter((l) => l !== lvl)
-      : [...filters.levels, lvl];
-    onChange({ ...filters, levels: next });
+    const next = localFilters.levels.includes(lvl)
+      ? localFilters.levels.filter((l) => l !== lvl)
+      : [...localFilters.levels, lvl];
+    setLocalFilters({ ...localFilters, levels: next });
   };
 
   return (
@@ -110,7 +112,7 @@ function FilterPanel({
         </p>
         <div className="flex flex-wrap gap-2">
           {LEVELS.map((lvl) => {
-            const active = filters.levels.includes(lvl);
+            const active = localFilters.levels.includes(lvl);
             return (
               <button
                 key={lvl}
@@ -138,11 +140,11 @@ function FilterPanel({
         </p>
         <div className="flex gap-2">
           {RATINGS.map((r) => {
-            const active = filters.minRating === r.value;
+            const active = localFilters.minRating === r.value;
             return (
               <button
                 key={r.label}
-                onClick={() => onChange({ ...filters, minRating: r.value })}
+                onClick={() => setLocalFilters({ ...localFilters, minRating: r.value })}
                 className="flex-1 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center justify-center gap-1"
                 style={{
                   background: active ? 'rgba(245,158,11,0.12)' : 'rgba(22,27,34,0.8)',
@@ -166,7 +168,7 @@ function FilterPanel({
             MIN AVAILABILITY
           </p>
           <span style={{ color: '#5865F2', fontSize: '0.75rem', fontWeight: 700 }}>
-            {filters.minHours === 0 ? 'Any' : `${filters.minHours}h/wk`}
+            {localFilters.minHours === 0 ? 'Any' : `${localFilters.minHours}h/wk`}
           </span>
         </div>
         <input
@@ -174,8 +176,8 @@ function FilterPanel({
           min={0}
           max={8}
           step={1}
-          value={filters.minHours}
-          onChange={(e) => onChange({ ...filters, minHours: Number(e.target.value) })}
+          value={localFilters.minHours}
+          onChange={(e) => setLocalFilters({ ...localFilters, minHours: Number(e.target.value) })}
           className="w-full"
           style={{ accentColor: '#5865F2', cursor: 'pointer' }}
         />
@@ -192,17 +194,17 @@ function FilterPanel({
           <p style={{ color: '#484F58', fontSize: '0.72rem' }}>Show only available swappers</p>
         </div>
         <button
-          onClick={() => onChange({ ...filters, onlineOnly: !filters.onlineOnly })}
+          onClick={() => setLocalFilters({ ...localFilters, onlineOnly: !localFilters.onlineOnly })}
           className="relative w-10 h-5 rounded-full transition-all"
           style={{
-            background: filters.onlineOnly ? '#22C55E' : '#30363D',
-            border: `1px solid ${filters.onlineOnly ? '#22C55E' : '#484F58'}`,
+            background: localFilters.onlineOnly ? '#22C55E' : '#30363D',
+            border: `1px solid ${localFilters.onlineOnly ? '#22C55E' : '#484F58'}`,
             cursor: 'pointer',
-            boxShadow: filters.onlineOnly ? '0 0 12px rgba(34,197,94,0.35)' : 'none',
+            boxShadow: localFilters.onlineOnly ? '0 0 12px rgba(34,197,94,0.35)' : 'none',
           }}
         >
           <motion.span
-            animate={{ x: filters.onlineOnly ? 20 : 2 }}
+            animate={{ x: localFilters.onlineOnly ? 20 : 2 }}
             transition={{ type: 'spring', stiffness: 500, damping: 35 }}
             className="absolute top-0.5 w-3.5 h-3.5 rounded-full bg-white"
             style={{ display: 'block' }}
@@ -213,7 +215,7 @@ function FilterPanel({
       {/* Footer */}
       <div className="flex gap-2 pt-1 border-t" style={{ borderColor: '#30363D' }}>
         <button
-          onClick={() => onChange(defaultFilters)}
+          onClick={() => setLocalFilters(defaultFilters)}
           className="flex-1 py-2 rounded-lg text-xs font-semibold transition-all"
           style={{
             background: 'rgba(22,27,34,0.8)',
@@ -225,7 +227,10 @@ function FilterPanel({
           Reset All
         </button>
         <button
-          onClick={onClose}
+          onClick={() => {
+            onApply(localFilters);
+            onClose();
+          }}
           className="flex-1 py-2 rounded-lg text-xs font-semibold transition-all"
           style={{
             background: 'linear-gradient(135deg, #5865F2, #4752c4)',
@@ -245,41 +250,73 @@ function FilterPanel({
 import { useAuth } from '../components/AuthContext';
 
 // ── Skill Card Component ──────────────────────────────────────────────────────
-const SkillCard = React.forwardRef<HTMLDivElement, { card: any; onToast: (m: string, t?: 'success' | 'error') => void }>(
-  function SkillCard({ card, onToast }, ref) {
-  const { user } = useAuth();
-  const [swapState, setSwapState] = useState<'idle' | 'loading' | 'success'>('idle');
+const SkillCard = React.forwardRef<HTMLDivElement, { card: any; onToast: (m: string, t?: 'success' | 'error') => void; isAlreadySent: boolean }>(
+  function SkillCard({ card, onToast, isAlreadySent }, ref) {
+  const { user, refreshUser } = useAuth();
+  const [swapState, setSwapState] = useState<'idle' | 'loading' | 'success'>(isAlreadySent ? 'success' : 'idle');
   const [hovered, setHovered] = useState(false);
+
+  useEffect(() => {
+    if (isAlreadySent) setSwapState('success');
+  }, [isAlreadySent]);
 
   const level = levelColors[card.level] || levelColors.Intermediate;
 
   const handleSwap = async (e: React.MouseEvent) => {
+    e.preventDefault();
     e.stopPropagation();
-    if (swapState !== 'idle') return;
+    
+    if (swapState === 'loading') return;
     if (!user) {
       onToast('Please sign in to request a swap!', 'error');
       return;
     }
-    setSwapState('loading');
-    
+
     try {
+      if (swapState === 'success') {
+        setSwapState('loading');
+        const res = await fetch(`/api/swaps?senderId=${user.id}&receiverId=${card.userId}`, {
+          method: 'DELETE',
+        });
+        if (res.ok) {
+          setSwapState('idle');
+          onToast(`Swap request to ${card.name} cancelled.`, 'success');
+          setTimeout(() => refreshUser(), 500);
+        } else {
+          onToast('Failed to cancel request.', 'error');
+          setSwapState('success');
+        }
+        return;
+      }
+
+      setSwapState('loading');
+      
+      // Find a skill the current user can offer
+      const offer = user.skills?.find((s: any) => s.type === 'have')?.name || 'General Help';
+      
       const res = await fetch('/api/swaps', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           senderId: user.id,
           receiverId: card.userId,
-          skillOffered: user.skills?.find(s => s.type === 'have')?.name || 'General Help',
+          skillOffered: offer,
           skillWanted: card.skill
         }),
       });
+
       if (res.ok) {
         setSwapState('success');
-        onToast(`Swap requested with ${card.name}!`);
+        onToast(`Swap requested with ${card.name}!`, 'success');
+        // Wait a bit before refreshing to ensure DB has committed
+        setTimeout(() => refreshUser(), 500);
       } else {
+        const errData = await res.json().catch(() => ({}));
+        onToast(errData.error || 'Failed to send request.', 'error');
         setSwapState('idle');
       }
     } catch (err) {
+      onToast('Network error. Check your connection.', 'error');
       setSwapState('idle');
     }
   };
@@ -321,16 +358,29 @@ const SkillCard = React.forwardRef<HTMLDivElement, { card: any; onToast: (m: str
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-3">
             <div className="relative shrink-0">
-              <div
-                className="w-11 h-11 rounded-xl flex items-center justify-center font-bold text-white text-sm"
-                style={{
-                  background: `linear-gradient(135deg, ${card.color}99, ${card.color}44)`,
-                  border: `1px solid ${card.color}40`,
-                  boxShadow: `0 0 12px ${card.color}20`,
-                }}
-              >
-                {card.initials}
-              </div>
+              {card.avatarUrl ? (
+                <img
+                  src={card.avatarUrl}
+                  alt={card.name}
+                  className="w-11 h-11 rounded-xl object-cover"
+                  style={{
+                    background: `linear-gradient(135deg, ${card.color}40, ${card.color}10)`,
+                    border: `1px solid ${card.color}40`,
+                    boxShadow: `0 0 12px ${card.color}20`,
+                  }}
+                />
+              ) : (
+                <div
+                  className="w-11 h-11 rounded-xl flex items-center justify-center font-bold text-white text-sm"
+                  style={{
+                    background: `linear-gradient(135deg, ${card.color}99, ${card.color}44)`,
+                    border: `1px solid ${card.color}40`,
+                    boxShadow: `0 0 12px ${card.color}20`,
+                  }}
+                >
+                  {card.initials}
+                </div>
+              )}
               {card.online && (
                 <span
                   className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2"
@@ -396,6 +446,7 @@ const SkillCard = React.forwardRef<HTMLDivElement, { card: any; onToast: (m: str
 
         {/* Swap Button */}
         <motion.button
+          type="button"
           onClick={handleSwap}
           whileTap={{ scale: 0.96 }}
           className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg font-semibold transition-all"
@@ -409,7 +460,7 @@ const SkillCard = React.forwardRef<HTMLDivElement, { card: any; onToast: (m: str
             boxShadow: swapState === 'idle' ? '0 0 16px rgba(88,101,242,0.3)' : 'none',
             color: swapState === 'success' ? '#4ADE80' : swapState === 'loading' ? '#818CF8' : '#fff',
             fontSize: '0.82rem',
-            cursor: swapState === 'idle' ? 'pointer' : 'default',
+            cursor: swapState === 'loading' ? 'default' : 'pointer',
           }}
         >
           <AnimatePresence mode="wait">
@@ -426,13 +477,13 @@ const SkillCard = React.forwardRef<HTMLDivElement, { card: any; onToast: (m: str
                   transition={{ duration: 0.8, repeat: Infinity, ease: 'linear' }}
                   className="w-3.5 h-3.5 rounded-full border-2 border-indigo-400 border-t-transparent"
                 />
-                Sending…
+                Processing…
               </motion.span>
             )}
             {swapState === 'success' && (
               <motion.span key="success" initial={{ opacity: 0, scale: 0.7 }} animate={{ opacity: 1, scale: 1 }} className="flex items-center gap-2">
-                <CheckCircle size={14} />
-                Swap Requested!
+                {hovered ? <X size={14} /> : <CheckCircle size={14} />}
+                {hovered ? 'Cancel Request' : 'Swap Requested!'}
               </motion.span>
             )}
           </AnimatePresence>
@@ -491,17 +542,18 @@ export function ExplorePage() {
     .flatMap(u => (u.skills || []).filter((s:any) => s.type === 'have').map((s:any) => ({
       id: s.id,
       userId: u.id,
-      name: u.username,
-      initials: u.username.slice(0, 2).toUpperCase(),
+      name: u.name || u.username,
+      initials: (u.name || u.username).slice(0, 2).toUpperCase(),
       color: u.avatarColor || '#5865F2',
+      avatarUrl: `https://api.dicebear.com/9.x/avataaars/svg?seed=${u.username}&backgroundColor=transparent`,
       skill: s.name,
       category: s.category || 'other',
       rating: u.rating || 5.0,
-      reviews: Math.floor(Math.random() * 20),
+      reviews: u.totalSwaps * 3 + (u.username.length % 5) + 2,
       hours: u.hoursExchanged || 4,
       level: u.level || 'Noob',
       tags: [s.name, s.category || 'skill'],
-      online: true,
+      online: u.isOnline ?? true,
       swaps: u.totalSwaps || 0,
     })));
 
@@ -718,7 +770,7 @@ export function ExplorePage() {
             {showFilters && (
               <FilterPanel
                 filters={filters}
-                onChange={setFilters}
+                onApply={setFilters}
                 onClose={() => setShowFilters(false)}
               />
             )}
@@ -819,7 +871,12 @@ export function ExplorePage() {
         <motion.div layout className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           <AnimatePresence mode="popLayout">
             {filtered.map((card) => (
-              <SkillCard key={card.id} card={card} onToast={showToast} />
+              <SkillCard
+                key={card.id}
+                card={card}
+                onToast={showToast}
+                isAlreadySent={user?.sentSwaps?.some((s: any) => s.receiverId === card.userId)}
+              />
             ))}
           </AnimatePresence>
         </motion.div>

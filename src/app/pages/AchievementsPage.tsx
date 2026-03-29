@@ -1,8 +1,9 @@
 import { useState, useId } from 'react';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
+import { useNavigate } from 'react-router';
 import {
   Trophy, Star, Zap, Users, BookOpen, TrendingUp,
-  Clock, Shield, Award, Target, Flame, Heart, CheckCircle
+  Clock, Shield, Award, Target, Flame, Heart, CheckCircle, ArrowLeft, LayoutDashboard, X
 } from 'lucide-react';
 import {
   AreaChart, Area, XAxis, Tooltip, ResponsiveContainer
@@ -160,6 +161,16 @@ const currentLevel = levelThresholds.filter(l => l.xp <= totalXP).pop()!;
 const nextLevel = levelThresholds.find(l => l.xp > totalXP)!;
 const levelProgress = ((totalXP - currentLevel.xp) / (nextLevel.xp - currentLevel.xp)) * 100;
 
+const leaderboardData = [
+  { rank: 1, name: 'Aditya K.', xp: 5240, initials: 'AK', color: '#F59E0B', badge: 'Legend' },
+  { rank: 2, name: 'Sarah J.', xp: 4890, initials: 'SJ', color: '#00F5FF', badge: 'Legend' },
+  { rank: 3, name: 'Mike Ross', xp: 4420, initials: 'MR', color: '#5865F2', badge: 'Grandmaster' },
+  { rank: 4, name: 'Elena V.', xp: 3980, initials: 'EV', color: '#EC4899', badge: 'Grandmaster' },
+  { rank: 5, name: 'David G.', xp: 3550, initials: 'DG', color: '#22C55E', badge: 'Master' },
+  { rank: 6, name: 'Lisa M.', xp: 3120, initials: 'LM', color: '#8B5CF6', badge: 'Master' },
+  { rank: 47, name: 'You', xp: 1320, initials: 'YO', color: '#5865F2', badge: 'Expert', isMe: true },
+];
+
 const rarityOrder = ['Legendary', 'Epic', 'Rare', 'Uncommon'];
 const rarityBg: Record<string, string> = {
   Legendary: 'rgba(245,158,11,0.06)',
@@ -309,9 +320,114 @@ function BadgeCard({ badge, i }: { badge: typeof badges[0]; i: number }) {
   );
 }
 
+function LeaderboardModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onClose}
+            style={{ position: 'absolute', inset: 0, background: 'rgba(1, 4, 9, 0.85)', backdropFilter: 'blur(12px)' }}
+          />
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9, y: 30 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.9, y: 30 }}
+            style={{
+              position: 'relative',
+              width: '100%',
+              maxWidth: 500,
+              background: 'rgba(22, 27, 34, 0.97)',
+              border: '1px solid #30363D',
+              borderRadius: '24px',
+              padding: '24px',
+              boxShadow: '0 32px 128px rgba(0,0,0,0.8)',
+              margin: 'auto'
+            }}
+          >
+            <div className="flex items-center justify-between mb-8">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-xl" style={{ background: 'rgba(245, 158, 11, 0.12)', border: '1px solid rgba(245, 158, 11, 0.3)' }}>
+                  <Trophy size={20} color="#F59E0B" />
+                </div>
+                <h2 style={{ color: '#E6EDF3', fontWeight: 800, fontSize: '1.5rem', letterSpacing: '-0.02em' }}>Global Leaders</h2>
+              </div>
+              <button
+                onClick={onClose}
+                className="w-10 h-10 rounded-xl flex items-center justify-center transition-all hover:rotate-90"
+                style={{ background: 'rgba(48,54,61,0.5)', border: '1px solid #30363D', color: '#8B949E', cursor: 'pointer' }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="flex flex-col gap-3">
+              {leaderboardData.map((user) => (
+                <div
+                  key={user.rank}
+                  className="flex items-center gap-4 p-4 rounded-xl transition-all"
+                  style={{
+                    background: user.isMe ? 'rgba(88, 101, 242, 0.12)' : 'rgba(48, 54, 61, 0.25)',
+                    border: user.isMe ? '1px solid rgba(88, 101, 242, 0.4)' : '1px solid #30363D',
+                    boxShadow: user.isMe ? '0 0 20px rgba(88, 101, 242, 0.15)' : 'none'
+                  }}
+                >
+                  <div className="w-8 text-center" style={{ color: user.rank <= 3 ? '#F59E0B' : '#484F58', fontWeight: 800, fontSize: '0.9rem' }}>
+                    #{user.rank}
+                  </div>
+                  <div
+                    className="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm"
+                    style={{ background: `linear-gradient(135deg, ${user.color}, ${user.color}88)`, color: '#fff' }}
+                  >
+                    {user.initials}
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <p style={{ color: '#E6EDF3', fontWeight: 700, fontSize: '0.95rem' }}>{user.name}</p>
+                      <span
+                        className="px-2 py-0.5 rounded-full font-bold"
+                        style={{ background: 'rgba(139, 92, 246, 0.1)', border: '1px solid rgba(139, 92, 246, 0.2)', color: '#A78BFA', fontSize: '0.65rem' }}
+                      >
+                        {user.badge}
+                      </span>
+                    </div>
+                    <div className="h-1.5 w-full bg-[#30363D] rounded-full mt-2 relative overflow-hidden">
+                      <div
+                        style={{
+                          width: `${(user.xp / 5500) * 100}%`,
+                          height: '100%',
+                          background: `linear-gradient(90deg, ${user.color}, #fff)`,
+                          borderRadius: 'full'
+                        }}
+                      />
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p style={{ color: '#00F5FF', fontWeight: 800, fontSize: '1rem' }}>{user.xp.toLocaleString()}</p>
+                    <p style={{ color: '#484F58', fontSize: '0.65rem', fontWeight: 600 }}>XP</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <p style={{ color: '#484F58', fontSize: '0.75rem', textAlign: 'center', marginTop: 24, lineHeight: 1.6 }}>
+              Keep swapping to rise through the ranks! Next rankup at <span style={{ color: '#F59E0B' }}>1,600 XP</span>.
+            </p>
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>
+  );
+}
+
 // ── Page ──────────────────────────────────────────────────────────────────────
 export function AchievementsPage() {
+  const navigate = useNavigate();
   const [filter, setFilter] = useState<'all' | 'earned' | 'locked'>('all');
+  const [leaderboardOpen, setLeaderboardOpen] = useState(false);
   const filtered = badges.filter(b =>
     filter === 'all' ? true : filter === 'earned' ? b.earned : !b.earned
   );
@@ -326,6 +442,24 @@ export function AchievementsPage() {
     >
       <div className="max-w-6xl mx-auto">
         {/* Header */}
+        <motion.button
+          onClick={() => navigate('/dashboard')}
+          initial={{ opacity: 0, x: -10 }}
+          animate={{ opacity: 1, x: 0 }}
+          className="flex items-center gap-2 mb-6 px-3 py-1.5 rounded-lg transition-all"
+          style={{
+            background: 'rgba(22,27,34,0.7)',
+            border: '1px solid #30363D',
+            color: '#8B949E',
+            fontSize: '0.8rem',
+            fontWeight: 600,
+            cursor: 'pointer'
+          }}
+        >
+          <ArrowLeft size={14} />
+          Back to Dashboard
+        </motion.button>
+
         <motion.div initial={{ opacity: 0, y: -16 }} animate={{ opacity: 1, y: 0 }} className="mb-10">
           <div className="flex items-center gap-2 mb-2">
             <Trophy size={18} color="#F59E0B" />
@@ -541,22 +675,42 @@ export function AchievementsPage() {
                 </p>
               </div>
             </div>
-            <button
-              className="shrink-0 flex items-center gap-2 px-5 py-2.5 rounded-lg font-semibold"
-              style={{
-                background: 'linear-gradient(135deg, #F59E0B, #F97316)',
-                color: '#fff',
-                fontSize: '0.85rem',
-                cursor: 'pointer',
-                boxShadow: '0 0 16px rgba(245,158,11,0.35)',
-                border: 'none',
-              }}
-            >
-              <TrendingUp size={15} /> View Leaderboard
-            </button>
+            <div className="flex items-center gap-3 shrink-0">
+              <button
+                onClick={() => navigate('/dashboard')}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-lg font-semibold"
+                style={{
+                  background: 'rgba(22,27,34,0.8)',
+                  border: '1px solid #30363D',
+                  color: '#E6EDF3',
+                  fontSize: '0.85rem',
+                  cursor: 'pointer',
+                  fontFamily: 'inherit'
+                }}
+              >
+                <LayoutDashboard size={15} color="#5865F2" /> View Dashboard
+              </button>
+              <button
+                onClick={() => setLeaderboardOpen(true)}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-lg font-semibold"
+                style={{
+                  background: 'linear-gradient(135deg, #F59E0B, #F97316)',
+                  color: '#fff',
+                  fontSize: '0.85rem',
+                  cursor: 'pointer',
+                  boxShadow: '0 0 16px rgba(245,158,11,0.35)',
+                  border: 'none',
+                  fontFamily: 'inherit'
+                }}
+              >
+                <TrendingUp size={15} /> View Leaderboard
+              </button>
+            </div>
           </div>
         </motion.div>
       </div>
+
+      <LeaderboardModal isOpen={leaderboardOpen} onClose={() => setLeaderboardOpen(false)} />
     </div>
   );
 }

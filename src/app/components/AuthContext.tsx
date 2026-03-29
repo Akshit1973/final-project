@@ -44,6 +44,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             const fresh = await res.json();
             setUser(fresh);
             localStorage.setItem('user', JSON.stringify(fresh));
+          } else if (res.status === 404) {
+            // User deleted from DB (e.g. re-seed), clear session
+            localStorage.removeItem('user');
+            setUser(null);
           } else {
             setUser(parsed);
           }

@@ -66,6 +66,62 @@ async function main() {
         { name: 'Public Speaking', type: 'have', category: 'speaking' },
         { name: 'Photography', type: 'want', category: 'photo' }
       ]
+    },
+    { 
+      username: 'leo_cooks', 
+      email: 'leo@example.com', 
+      level: 'Pro', 
+      color: '#84CC16',
+      rating: 4.6,
+      totalSwaps: 15,
+      hours: 30,
+      skills: [
+        { name: 'French Cuisine', type: 'have', category: 'cooking' },
+        { name: 'Plating Techniques', type: 'have', category: 'cooking' },
+        { name: 'Italian Basics', type: 'want', category: 'cooking' }
+      ]
+    },
+    { 
+      username: 'maya_fit', 
+      email: 'maya@example.com', 
+      level: 'Advance', 
+      color: '#EF4444',
+      rating: 4.9,
+      totalSwaps: 58,
+      hours: 120,
+      skills: [
+        { name: 'Yoga Vinyasa', type: 'have', category: 'fitness' },
+        { name: 'Meditation', type: 'have', category: 'fitness' },
+        { name: 'Nutrition', type: 'want', category: 'fitness' }
+      ]
+    },
+    { 
+      username: 'sam_ai', 
+      email: 'sam@example.com', 
+      level: 'Pro', 
+      color: '#8B5CF6',
+      rating: 4.8,
+      totalSwaps: 27,
+      hours: 65,
+      skills: [
+        { name: 'Machine Learning', type: 'have', category: 'ai' },
+        { name: 'Python Data Sci', type: 'have', category: 'ai' },
+        { name: 'Deep Learning', type: 'want', category: 'ai' }
+      ]
+    },
+    { 
+      username: 'zara_lens', 
+      email: 'zara@example.com', 
+      level: 'Intermediate', 
+      color: '#F97316',
+      rating: 4.7,
+      totalSwaps: 19,
+      hours: 42,
+      skills: [
+        { name: 'Portrait Photo', type: 'have', category: 'photo' },
+        { name: 'Lightroom', type: 'have', category: 'photo' },
+        { name: 'Video Editing', type: 'want', category: 'design' }
+      ]
     }
   ];
 

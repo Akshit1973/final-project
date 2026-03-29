@@ -2,6 +2,8 @@ import express from 'express';
 import cors from 'cors';
 import { PrismaClient } from '../generated/prisma/index.js';
 import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 dotenv.config();
 
@@ -9,8 +11,16 @@ const prisma = new PrismaClient();
 const app = express();
 const port = process.env.PORT || 3001;
 
+// ES Module __dirname equivalent
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 app.use(cors());
 app.use(express.json());
+
+// Serve static files from Vite's dist directory
+const distPath = path.join(__dirname, '../../dist');
+app.use(express.static(distPath));
 
 app.get('/api/users', async (req, res) => {
   try {
@@ -107,6 +117,17 @@ app.delete('/api/skills/:id', async (req, res) => {
 app.post('/api/swaps', async (req, res) => {
   try {
     const { senderId, receiverId, skillOffered, skillWanted } = req.body;
+    console.log('Received swap request:', { senderId, receiverId, skillOffered, skillWanted });
+    
+    // Check if sender and receiver exist
+    const sender = await prisma.user.findUnique({ where: { id: senderId } });
+    const receiver = await prisma.user.findUnique({ where: { id: receiverId } });
+    
+    if (!sender || !receiver) {
+      console.error('Swap failed: Sender or Receiver not found', { senderExists: !!sender, receiverExists: !!receiver });
+      return res.status(404).json({ error: 'Sender or Receiver not found in database' });
+    }
+
     const swap = await prisma.swapRequest.create({
       data: {
         senderId,
@@ -115,9 +136,11 @@ app.post('/api/swaps', async (req, res) => {
         skillWanted
       }
     });
+    console.log('Swap created successfully:', swap.id);
     res.status(201).json(swap);
-  } catch (error) {
-    res.status(400).json({ error: 'Bad request' });
+  } catch (error: any) {
+    console.error('Prisma Swap Error:', error.message);
+    res.status(400).json({ error: 'Bad request: ' + error.message });
   }
 });
 
@@ -134,9 +157,33 @@ app.patch('/api/swaps/:id', async (req, res) => {
   }
 });
 
+app.delete('/api/swaps', async (req, res) => {
+  try {
+    const { senderId, receiverId } = req.query;
+    if (!senderId || !receiverId) {
+      return res.status(400).json({ error: 'senderId and receiverId are required' });
+    }
+    await prisma.swapRequest.deleteMany({
+      where: {
+        senderId: String(senderId),
+        receiverId: String(receiverId),
+        status: 'pending'
+      }
+    });
+    res.status(204).send();
+  } catch (error) {
+    res.status(400).json({ error: 'Bad request' });
+  }
+});
+
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Backend is running strongly!' });
+});
+
+// For any other request, send index.html (Client-side routing support)
+app.get('*', (req, res) => {
+  res.sendFile(path.join(distPath, 'index.html'));
 });
 
 app.listen(port, () => {

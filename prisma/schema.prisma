@@ -4,8 +4,8 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = "file:./dev.db"
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 model User {
@@ -20,6 +20,7 @@ model User {
   rating        Float          @default(5.0)
   totalSwaps    Int            @default(0)
   hoursExchanged Int           @default(0)
+  isOnline      Boolean        @default(true)
   skills        Skill[]
   sentSwaps     SwapRequest[]  @relation("SentSwaps")
   receivedSwaps SwapRequest[]  @relation("ReceivedSwaps")

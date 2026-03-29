@@ -90,7 +90,19 @@ export function LoginPage() {
   };
 
   const setField = (field: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) => {
-    setForm((p) => ({ ...p, [field]: e.target.value }));
+    const value = e.target.value;
+    setForm((p) => {
+      const next = { ...p, [field]: value };
+      
+      // Auto-fill email logic for convenience and to override browser autofill issues
+      if (mode === 'signup' && field === 'username') {
+        const isDefaultEmail = !p.email || p.email.includes('@gmail.com');
+        if (isDefaultEmail) {
+          next.email = value ? `${value.replace(/\s+/g, '').toLowerCase()}@gmail.com` : '';
+        }
+      }
+      return next;
+    });
     if (errors[field]) setErrors((p) => ({ ...p, [field]: undefined }));
   };
 
@@ -631,12 +643,12 @@ export function LoginPage() {
                         whileTap={{ scale: 0.98 }}
                         className="flex items-center justify-center gap-2 w-full py-3.5 rounded-lg font-semibold transition-all"
                         style={{
-                          background: loading ? 'rgba(88,101,242,0.6)' : 'linear-gradient(135deg, #5865F2, #4752c4)',
+                          background: loading ? 'rgba(88,101,242,0.6)' : 'linear-gradient(135deg, #5865F2, #4755F2)',
                           color: '#fff',
                           border: 'none',
                           cursor: loading ? 'default' : 'pointer',
                           fontSize: '0.95rem',
-                          boxShadow: loading ? 'none' : '0 0 28px rgba(88,101,242,0.4)',
+                          boxShadow: loading ? 'none' : '0 10px 25px -5px rgba(88,101,242,0.4)',
                           fontFamily: 'inherit',
                         }}
                         disabled={loading}
@@ -656,6 +668,44 @@ export function LoginPage() {
                             <ArrowRight size={16} />
                           </>
                         )}
+                      </motion.button>
+
+                      <div className="flex items-center gap-4 my-2">
+                        <div className="h-px flex-1 bg-[#30363D]" />
+                        <span style={{ color: '#484F58', fontSize: '0.75rem', fontWeight: 600 }}>OR</span>
+                        <div className="h-px flex-1 bg-[#30363D]" />
+                      </div>
+
+                      <motion.button
+                        type="button"
+                        whileTap={{ scale: 0.98 }}
+                        onClick={handleGoogleLogin}
+                        disabled={googleLoading}
+                        className="flex items-center justify-center gap-3 w-full py-3 rounded-lg font-semibold transition-all"
+                        style={{
+                          background: 'rgba(22,27,34,0.8)',
+                          color: '#E6EDF3',
+                          border: '1px solid #30363D',
+                          cursor: googleLoading ? 'default' : 'pointer',
+                          fontSize: '0.9rem',
+                          fontFamily: 'inherit',
+                        }}
+                      >
+                        {googleLoading ? (
+                          <motion.div
+                            animate={{ rotate: 360 }}
+                            transition={{ duration: 0.8, repeat: Infinity, ease: 'linear' }}
+                            className="w-4 h-4 rounded-full border-2 border-[#5865F2] border-t-transparent"
+                          />
+                        ) : (
+                          <svg width="18" height="18" viewBox="0 0 18 18">
+                            <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z" fill="#4285F4"/>
+                            <path d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.258c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z" fill="#34A853"/>
+                            <path d="M3.964 10.712c-.18-.54-.282-1.117-.282-1.712s.102-1.173.282-1.712V4.956H.957a9.006 9.006 0 0 0 0 8.088l3.007-2.332z" fill="#FBBC05"/>
+                            <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.582C13.463.891 11.426 0 9 0 5.483 0 2.443 2.049.957 4.956l3.007 2.332C4.672 5.164 6.656 3.58 9 3.58z" fill="#EA4335"/>
+                          </svg>
+                        )}
+                        Continue with Google
                       </motion.button>
 
                       <p style={{ color: '#484F58', fontSize: '0.78rem', textAlign: 'center', lineHeight: 1.7 }}>
